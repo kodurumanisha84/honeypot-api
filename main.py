@@ -103,17 +103,4 @@ def analyze(req: HoneypotRequest, key: str = Depends(verify_key)):
         }
 
     }
-@app.get("/honeypot/analyze")
-def honeypot_get():
-    return {
-        "status": "API is running",
-        "message": "This endpoint expects a POST request with JSON body.",
-        "how_to_use": {
-            "method": "POST",
-            "header": "Authorization: Bearer HONEY_POT_2026_KEY",
-            "body_example": {
-                "message": "You won ₹5000 click now"
-            }
-        }
-    }
 
