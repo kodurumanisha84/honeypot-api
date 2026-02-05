@@ -103,7 +103,7 @@ def analyze(req: HoneypotRequest, key: str = Depends(verify_key)):
         }
 
     }
-    @app.get("/honeypot/analyze")
+@app.get("/honeypot/analyze")
 def honeypot_get():
     return {
         "status": "API is running",
@@ -116,3 +116,4 @@ def honeypot_get():
             }
         }
     }
+
