@@ -2,9 +2,9 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel
 from typing import List
-import re
+import random, re
 
-app = FastAPI(title="Agentic HoneyPot API")
+app = FastAPI(title="Universal Scam Detection & Honeypot API")
 
 # ---------------- SECURITY ----------------
 API_KEY = "HONEY_POT_2026_KEY"
@@ -25,215 +25,93 @@ class HoneypotRequest(BaseModel):
     message: Message
     conversationHistory: List[Message] = []
 
-# ---------------- SCAM DATABASE ----------------
-SCAMS = {
-     # 🔴 BANKING & PAYMENT
-    "BANKING_FRAUD": {
-        "keywords": ["bank", "kyc", "account", "otp", "blocked"],
-        "replies": [
-            "Sir I am poor man 😢 why my account only?",
-            "My ATM card is lost since 2019… still problem?",
-            "If account blocks, salary will come or not?"
-        ]
-    },
-
-    "UPI_FRAUD": {
-        "keywords": ["upi", "qr", "scan", "refund", "collect"],
-        "replies": [
-            "Oh no 😰 I just had tea… will my money go before dinner?",
-            "UPI means government thing right? I am scared now.",
-            "If I scan QR will my phone explode? 😟"
-        ]
-    },
-
-    # 🟡 SOCIAL MEDIA
-    "INSTAGRAM_SCAM": {
-        "keywords": ["instagram", "blue tick", "verified", "account disabled"],
-        "replies": [
-            "Blue tick will make me famous? 😎",
-            "If account disabled, my reels gone?",
-            "Can I get followers also with this?"
-        ]
-    },
-
-    "FACEBOOK_SCAM": {
-        "keywords": ["facebook", "meta", "page blocked"],
-        "replies": [
-            "My Facebook is only memes 😭 still blocked?",
-            "Is this from Meta officially?",
-            "Can I recover my old photos?"
-        ]
-    },
-
-    "WHATSAPP_SCAM": {
-        "keywords": ["whatsapp", "code", "six digit", "verify"],
-        "replies": [
-            "Why WhatsApp sending code to you?",
-            "If hacked, my chats gone?",
-            "Can I reinstall WhatsApp?"
-        ]
-    },
-
-    # 🔵 CONTENT CREATOR
-    "YOUTUBE_SCAM": {
-        "keywords": ["youtube", "copyright", "strike", "monetization"],
-        "replies": [
-            "Copyright strike?? I have only 3 subscribers 😭",
-            "I upload memes only sir… still problem?",
-            "If channel deletes, will videos cry?"
-        ]
-    },
-
-    # 🟠 DELIVERY & E-COMMERCE
-    "DELIVERY_SCAM": {
-        "keywords": ["parcel", "courier", "customs", "delivery failed"],
-        "replies": [
-            "Parcel? I didn’t order anything 🤔",
-            "Is it Amazon or Flipkart?",
-            "Can delivery boy call directly?"
-        ]
-    },
-
-    "ECOMMERCE_SCAM": {
-        "keywords": ["amazon", "flipkart", "order cancelled", "refund"],
-        "replies": [
-            "Refund already credited or pending?",
-            "Why refund needs OTP?",
-            "Can I check in app?"
-        ]
-    },
-
-    # 💔 RELATIONSHIP
-    "ROMANCE_SCAM": {
-        "keywords": ["love", "darling", "marriage", "trust me"],
-        "replies": [
-            "You love me so fast? 😳",
-            "Marriage already? We didn’t fight yet!",
-            "Can you send photo with today’s newspaper?"
-        ]
-    },
-
-    # 🟣 TECH SUPPORT
-    "TECH_SUPPORT_SCAM": {
-        "keywords": ["microsoft", "virus", "support", "hacked"],
-        "replies": [
-            "Virus? Laptop already slow since 2015 😭",
-            "If hacked, will my photos leak?",
-            "Can I just shut down laptop?"
-        ]
-    },
-
-    # 🟢 GOVERNMENT
-    "GOVERNMENT_SCAM": {
-        "keywords": ["aadhar", "pan", "income tax", "subsidy"],
-        "replies": [
-            "Aadhar already linked everywhere sir 😵",
-            "Government calling on WhatsApp?",
-            "Will subsidy stop if I ignore?"
-        ]
-    },
-
-    # 🟤 LEGAL & THREATS
-    "LEGAL_SCAM": {
-        "keywords": ["police", "court", "fir", "legal notice"],
-        "replies": [
-            "Police?? 😭 I did nothing wrong.",
-            "Can we solve without court?",
-            "Should I tell my parents?"
-        ]
-    },
-
-    # 💰 MONEY MAKING
-    "LOTTERY_SCAM": {
-        "keywords": ["lottery", "prize", "won"],
-        "replies": [
-            "I never bought ticket… still lucky? 😂",
-            "Prize is cash or cooker?",
-            "Can prize come by COD?"
-        ]
-    },
-
-    "INVESTMENT_SCAM": {
-        "keywords": ["crypto", "investment", "profit", "trading"],
-        "replies": [
-            "Profit guaranteed means 100% or 200%?",
-            "If loss happens, will you return money?",
-            "Can I invest ₹500 first?"
-        ]
-    },
-
-    # 🧠 JOB & EDUCATION
-    "JOB_SCAM": {
-        "keywords": ["job", "work from home", "registration fee"],
-        "replies": [
-            "Why job asking money first?",
-            "Is company registered in India?",
-            "Can I pay after salary?"
-        ]
-    },
-
-    "EDUCATION_SCAM": {
-        "keywords": ["admission", "degree", "certificate"],
-        "replies": [
-            "Degree without exam really possible?",
-            "Is this UGC approved?",
-            "Will college verify later?"
-        ]
-    }
-
+# ---------------- UNIVERSAL SCAM VECTORS ----------------
+SCAM_VECTORS = {
+    "FINANCIAL": ["bank", "otp", "upi", "refund", "account", "blocked"],
+    "JOB_EDU": ["job", "fee", "registration", "degree", "exam"],
+    "ECOMMERCE": ["delivery", "order", "amazon", "flipkart"],
+    "RELATIONSHIP": ["love", "marriage", "trust"],
+    "AUTHORITY": ["police", "court", "customs", "trai"],
+    "TECH": ["virus", "support", "microsoft", "hacked"],
+    "INVESTMENT": ["crypto", "trading", "profit"],
+    "GOVERNMENT": ["aadhaar", "pan", "subsidy", "tax"],
+    "MEDICAL": ["hospital", "emergency", "accident"],
+    "BUSINESS": ["invoice", "vendor", "payment change"]
 }
 
-# ---------------- HELPERS ----------------
-def detect_scam_type(text: str) -> str:
+INTENT_VECTORS = {
+    "MONEY": ["pay", "transfer", "fee", "send"],
+    "CREDENTIAL": ["otp", "pin", "password"],
+    "THREAT": ["blocked", "arrest", "freeze"],
+    "URGENCY": ["urgent", "immediately", "minutes"]
+}
+
+RESPONSE_MODES = [
+    "CONFUSED", "FEARFUL", "LOGICAL", "TIME_WASTER", "OVER_SHARING"
+]
+
+# ---------------- DETECTION ----------------
+def detect_vectors(text: str):
     text = text.lower()
-    for scam_type, data in SCAMS.items():
-        for kw in data["keywords"]:
-            if kw in text:
-                return scam_type
-    return "UNKNOWN"
+    return [v for v, kws in SCAM_VECTORS.items() if any(k in text for k in kws)]
 
-def get_agent_reply(scam_type: str, turn: int) -> str:
-    if scam_type == "UNKNOWN":
-        return "I am confused 😕 can you explain again?"
+def detect_intents(text: str):
+    text = text.lower()
+    return [i for i, kws in INTENT_VECTORS.items() if any(k in text for k in kws)]
 
-    replies = SCAMS[scam_type]["replies"]
-    index = min(turn - 1, len(replies) - 1)
-    return replies[index]
+# ---------------- RESPONSE ENGINE ----------------
+def generate_response(vectors, intents):
+    mode = random.choice(RESPONSE_MODES)
 
-def extract_intelligence(text: str) -> dict:
+    money = random.choice(["₹499", "₹1,000", "₹2,500"])
+    time = random.choice(["today", "tomorrow", "month end"])
+    device = random.choice(["old phone", "office laptop", "borrowed mobile"])
+
+    if mode == "CONFUSED":
+        return "I am not understanding 😕 can you explain again slowly?"
+
+    if mode == "FEARFUL":
+        return f"If this happens, my {money} salary will still come on {time} or not?"
+
+    if mode == "LOGICAL":
+        return "Official messages usually come inside app, why this is different?"
+
+    if mode == "TIME_WASTER":
+        return f"My battery is low on {device} 😬 please wait 5 minutes."
+
+    if mode == "OVER_SHARING":
+        return "Earlier also similar message came but nothing happened."
+
+    return "Please explain again."
+
+# ---------------- INTELLIGENCE ----------------
+def extract_intelligence(text: str):
     return {
-        "phoneNumbers": re.findall(r"\b\d{10}\b", text),
-        "emailIds": re.findall(r"[a-zA-Z0-9._%+-]+@[a-zA-Z.-]+\.[a-zA-Z]{2,}", text),
-        "upiIds": re.findall(r"\b[\w.-]+@[\w.-]+\b", text),
-        "phishingLinks": re.findall(r"https?://\S+", text),
-        "cryptoWallets": re.findall(r"\b[13][a-km-zA-HJ-NP-Z1-9]{25,34}\b", text),
-        "governmentIds": {
-            "pan": re.findall(r"\b[A-Z]{5}[0-9]{4}[A-Z]\b", text),
-            "aadhar": re.findall(r"\b\d{4}\s\d{4}\s\d{4}\b", text)
-        },
-        "caseOrOrderNumbers": re.findall(r"\b[A-Z0-9]{6,}\b", text),
-        "mentionedBanks": [b for b in ["sbi", "hdfc", "icici", "axis"] if b in text.lower()],
-        "urgencySignals": [u for u in ["urgent", "today", "immediately", "within 1 hour"] if u in text.lower()],
-        "socialPlatforms": [p for p in ["youtube", "instagram", "whatsapp", "facebook"] if p in text.lower()]
+        "phones": re.findall(r"\b\d{10}\b", text),
+        "emails": re.findall(r"[a-zA-Z0-9._%+-]+@[a-zA-Z.-]+\.[a-zA-Z]{2,}", text),
+        "upi": re.findall(r"\b[\w.-]+@[\w.-]+\b", text),
+        "links": re.findall(r"https?://\S+", text)
     }
 
 # ---------------- API ----------------
 @app.post("/honeypot/analyze")
 def analyze(req: HoneypotRequest, key: str = Depends(verify_key)):
-    turn = len(req.conversationHistory) + 1
     text = req.message.text
 
-    scam_type = detect_scam_type(text)
-    reply = get_agent_reply(scam_type, turn)
+    vectors = detect_vectors(text)
+    intents = detect_intents(text)
+
+    response = generate_response(vectors, intents)
     intelligence = extract_intelligence(text)
 
     return {
         "status": "success",
-        "reply": reply,
+        "reply": response,
         "analysis": {
-            "scamType": scam_type,
-            "turn": turn,
+            "vectors": vectors or ["EMERGING_OR_UNKNOWN"],
+            "intents": intents,
+            "turn": len(req.conversationHistory) + 1,
             "extractedIntelligence": intelligence,
-            "agentNote": f"Deterministic victim-style reply for {scam_type}"
+            "agentNote": "Vector-based universal scam handling"
         }
     }
