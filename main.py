@@ -27,8 +27,7 @@ class HoneypotRequest(BaseModel):
 
 # ---------------- SCAM DATABASE ----------------
 SCAMS = {
-
-    # 🔴 BANKING & PAYMENT
+     # 🔴 BANKING & PAYMENT
     "BANKING_FRAUD": {
         "keywords": ["bank", "kyc", "account", "otp", "blocked"],
         "replies": [
@@ -181,6 +180,7 @@ SCAMS = {
             "Will college verify later?"
         ]
     }
+
 }
 
 # ---------------- HELPERS ----------------
@@ -200,6 +200,23 @@ def get_agent_reply(scam_type: str, turn: int) -> str:
     index = min(turn - 1, len(replies) - 1)
     return replies[index]
 
+def extract_intelligence(text: str) -> dict:
+    return {
+        "phoneNumbers": re.findall(r"\b\d{10}\b", text),
+        "emailIds": re.findall(r"[a-zA-Z0-9._%+-]+@[a-zA-Z.-]+\.[a-zA-Z]{2,}", text),
+        "upiIds": re.findall(r"\b[\w.-]+@[\w.-]+\b", text),
+        "phishingLinks": re.findall(r"https?://\S+", text),
+        "cryptoWallets": re.findall(r"\b[13][a-km-zA-HJ-NP-Z1-9]{25,34}\b", text),
+        "governmentIds": {
+            "pan": re.findall(r"\b[A-Z]{5}[0-9]{4}[A-Z]\b", text),
+            "aadhar": re.findall(r"\b\d{4}\s\d{4}\s\d{4}\b", text)
+        },
+        "caseOrOrderNumbers": re.findall(r"\b[A-Z0-9]{6,}\b", text),
+        "mentionedBanks": [b for b in ["sbi", "hdfc", "icici", "axis"] if b in text.lower()],
+        "urgencySignals": [u for u in ["urgent", "today", "immediately", "within 1 hour"] if u in text.lower()],
+        "socialPlatforms": [p for p in ["youtube", "instagram", "whatsapp", "facebook"] if p in text.lower()]
+    }
+
 # ---------------- API ----------------
 @app.post("/honeypot/analyze")
 def analyze(req: HoneypotRequest, key: str = Depends(verify_key)):
@@ -208,6 +225,7 @@ def analyze(req: HoneypotRequest, key: str = Depends(verify_key)):
 
     scam_type = detect_scam_type(text)
     reply = get_agent_reply(scam_type, turn)
+    intelligence = extract_intelligence(text)
 
     return {
         "status": "success",
@@ -215,10 +233,7 @@ def analyze(req: HoneypotRequest, key: str = Depends(verify_key)):
         "analysis": {
             "scamType": scam_type,
             "turn": turn,
-            "extractedIntelligence": {
-                "upis": upis,
-                "phoneNumbers": phones,
-                "phishingLinks": links
-            }
+            "extractedIntelligence": intelligence,
+            "agentNote": f"Deterministic victim-style reply for {scam_type}"
         }
     }
